@@ -9,6 +9,7 @@ from letta.functions.mcp_client.types import (
     MCP_AUTH_HEADER_AUTHORIZATION,
     MCP_AUTH_TOKEN_BEARER_PREFIX,
     MCPServerType,
+    MCPTool,
     SSEServerConfig,
     StdioServerConfig,
     StreamableHTTPServerConfig,
@@ -17,7 +18,7 @@ from letta.orm.mcp_oauth import OAuthSessionStatus
 from letta.schemas.enums import PrimitiveType
 from letta.schemas.letta_base import LettaBase
 from letta.schemas.secret import Secret
-
+from letta.schemas.enums import MCPExecutionMode
 
 class BaseMCPServer(LettaBase):
     __id_prefix__ = PrimitiveType.MCP_SERVER.value
@@ -31,7 +32,10 @@ class CreateStdioMCPServer(LettaBase):
     command: str = Field(..., description="The command to run (MCP 'local' client will run this command)")
     args: List[str] = Field(..., description="The arguments to pass to the command")
     env: Optional[dict[str, str]] = Field(None, description="Environment variables to set")
-
+    execution_mode: MCPExecutionMode = Field(
+            MCPExecutionMode.SERVER,
+            description="Where MCP server executes: 'server' (cloud) or 'client' (local)"
+        )
 
 class CreateSSEMCPServer(LettaBase):
     """Create a new SSE MCP server"""
@@ -342,6 +346,7 @@ async def convert_generic_to_union(server) -> MCPServerUnion:
             command=server.stdio_config.command if server.stdio_config else None,
             args=server.stdio_config.args if server.stdio_config else None,
             env=server.stdio_config.env if server.stdio_config else None,
+            execution_mode=server.get_execution_mode() or "server",
         )
     elif server.server_type == MCPServerType.SSE:
         # Get decrypted values from encrypted columns (async)

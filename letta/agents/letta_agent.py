@@ -35,7 +35,7 @@ from letta.otel.context import get_ctx_attributes
 from letta.otel.metric_registry import MetricRegistry
 from letta.otel.tracing import log_event, trace_method, tracer
 from letta.schemas.agent import AgentState, UpdateAgent
-from letta.schemas.enums import JobStatus, ProviderType, StepStatus, ToolType
+from letta.schemas.enums import JobStatus, ProviderType, StepStatus, ToolType, ToolSourceType
 from letta.schemas.letta_message import MessageType
 from letta.schemas.letta_message_content import OmittedReasoningContent, ReasoningContent, RedactedReasoningContent, TextContent
 from letta.schemas.letta_response import LettaResponse
@@ -1771,7 +1771,7 @@ class LettaAgent(BaseAgent):
         tool call, decide whether we should keep stepping, and persist state.
         """
         tool_call_id: str = tool_call.id or f"call_{uuid.uuid4().hex[:8]}"
-
+ 
         if is_denial:
             continue_stepping = True
             stop_reason = None
@@ -1813,7 +1813,15 @@ class LettaAgent(BaseAgent):
             tool_call_id=tool_call_id,
             request_heartbeat=request_heartbeat,
         )
-        if not is_approval and tool_rules_solver.is_requires_approval_tool(tool_call_name):
+        # Get tool to check execution mode
+        target_tool = agent_state.get_tool(tool_call_name)
+         # NEW: Check if tool requires approval (client-executable or tool rule)
+        requires_approval = (
+            tool_rules_solver.is_requires_approval_tool(tool_call_name) or
+            (target_tool and target_tool.source_type == ToolSourceType.client_executable)
+        )
+
+        if not is_approval and requires_approval:
             tool_args[REQUEST_HEARTBEAT_PARAM] = request_heartbeat
             approval_messages = create_approval_request_message_from_llm_response(
                 agent_id=agent_state.id,

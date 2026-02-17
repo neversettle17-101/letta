@@ -211,6 +211,10 @@ class StdioServerConfig(BaseServerConfig):
     command: str = Field(..., description="The command to run (MCP 'local' client will run this command)")
     args: List[str] = Field(..., description="The arguments to pass to the command")
     env: Optional[dict[str, str]] = Field(None, description="Environment variables to set")
+    execution_mode: Optional[str] = Field(
+        "server",
+        description="Where MCP server executes: 'server' (cloud) or 'client' (local, e.g. letta-code)",
+    )
 
     # TODO: @jnjpng templated auth handling for stdio
     def resolve_environment_variables(self, environment_variables: Optional[Dict[str, str]] = None) -> None:

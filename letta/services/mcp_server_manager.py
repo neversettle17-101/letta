@@ -209,7 +209,6 @@ class MCPServerManager:
             # Get the MCP server config
             mcp_config = await self.get_mcp_server_by_id_async(mcp_server_id, actor=actor)
             server_config = await mcp_config.to_config_async(environment_variables)
-
             mcp_client = await self.get_mcp_client(server_config, actor, agent_id=agent_id)
             await mcp_client.connect_to_server()
 
@@ -520,6 +519,9 @@ class MCPServerManager:
             if tool_settings.mcp_disable_stdio:
                 raise ValueError("MCP stdio servers are disabled. Set MCP_DISABLE_STDIO=false to enable them.")
             mcp_server = MCPServer(server_name=server_config.server_name, server_type=server_config.type, stdio_config=server_config)
+            if hasattr(server_config, "execution_mode"):
+                mcp_server.set_execution_mode(server_config.execution_mode)
+
         elif isinstance(server_config, SSEServerConfig):
             mcp_server = MCPServer(
                 server_name=server_config.server_name,
@@ -612,6 +614,9 @@ class MCPServerManager:
         # First, create the MCP server
         created_server = await self.create_mcp_server(pydantic_mcp_server, actor)
 
+        if created_server.is_client_side():
+            return created_server
+        
         # Optimistically try to sync tools
         try:
             logger.info(f"Attempting to auto-sync tools from MCP server: {created_server.server_name}")

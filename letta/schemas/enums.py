@@ -224,19 +224,24 @@ class ToolSourceType(str, Enum):
     python = "python"
     typescript = "typescript"
     json = "json"  # TODO (cliandy): is this still valid?
-
+    client_executable = "client_executable"
 
 class ActorType(str, Enum):
     LETTA_USER = "letta_user"
     LETTA_AGENT = "letta_agent"
     LETTA_SYSTEM = "letta_system"
 
-
 class MCPServerType(str, Enum):
     SSE = "sse"
     STDIO = "stdio"
     STREAMABLE_HTTP = "streamable_http"
 
+
+class MCPExecutionMode(str, Enum):
+    """Where the MCP server process executes: server (cloud) or client (local, e.g. letta-code)"""
+
+    SERVER = "server"
+    CLIENT = "client"
 
 class DuplicateFileHandling(str, Enum):
     """How to handle duplicate filenames when uploading files"""

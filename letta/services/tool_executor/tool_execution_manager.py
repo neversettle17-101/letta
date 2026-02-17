@@ -11,6 +11,7 @@ from letta.otel.metric_registry import MetricRegistry
 from letta.otel.tracing import trace_method
 from letta.schemas.agent import AgentState
 from letta.schemas.enums import ToolType
+from letta.schemas.enums import ToolSourceType
 from letta.schemas.sandbox_config import SandboxConfig
 from letta.schemas.tool import Tool
 from letta.schemas.tool_execution_result import ToolExecutionResult
@@ -99,6 +100,19 @@ class ToolExecutionManager:
         """
         Execute a tool asynchronously and persist any state changes.
         """
+        if tool.source_type == ToolSourceType.client_executable:
+            self.logger.info(f"Tool '{function_name} is client-executable. "
+                        f"Triggering approval flow for client-side execution. ")
+            # Don't execute server-side - will be handled by approval flow
+            error_message = (
+                f"Tool '{function_name}' requires client-side execution. "
+                f"Execution will be handled by letta-code CLI."
+            )    
+            return ToolExecutionResult(
+                status="error",
+                func_return=error_message,
+            )
+        
         status = "error"  # set as default for tracking purposes
         try:
             executor = ToolExecutorFactory.get_executor(

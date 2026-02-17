@@ -17,7 +17,7 @@ from letta.functions.mcp_client.types import (
     StreamableHTTPServerConfig,
 )
 from letta.orm.mcp_oauth import OAuthSessionStatus
-from letta.schemas.enums import PrimitiveType
+from letta.schemas.enums import PrimitiveType, MCPExecutionMode
 from letta.schemas.letta_base import LettaBase
 from letta.schemas.secret import Secret
 from letta.settings import settings
@@ -51,6 +51,37 @@ class MCPServer(BaseMCPServer):
     created_by_id: Optional[str] = Field(None, description="The id of the user that made this Tool.")
     last_updated_by_id: Optional[str] = Field(None, description="The id of the user that made this Tool.")
     metadata_: Optional[Dict[str, Any]] = Field(default_factory=dict, description="A dictionary of additional metadata for the tool.")
+
+    @field_validator("metadata_")
+    @classmethod
+    def validate_execution_mode(cls, v: Optional[Dict[str,Any]]) -> Optional[Dict[str,Any]]:
+        """Validate and extract execution_mode from metadata"""
+        if v is None:
+            return v
+        
+        # Validate execution_mode if present
+        if "execution_mode" in v:
+            execution_mode = v["execution_mode"]
+            if execution_mode not in [MCPExecutionMode.SERVER, MCPExecutionMode.CLIENT]:
+                raise ValueError(f"execution_mode must be 'server' or 'client', got: '{execution_mode}'")
+        
+        return v
+
+    def set_execution_mode(self, execution_mode: str) -> None:
+        """Set execution_mode in metadata_."""
+        if not self.metadata_:
+            self.metadata_ = {}
+        self.metadata_["execution_mode"] = execution_mode
+   
+    def get_execution_mode(self) -> Optional[str]:
+        """Get execution mode from metadata"""
+        if self.metadata_ and "execution_mode" in self.metadata_:
+            return self.metadata_["execution_mode"]
+        return None
+    
+    def is_client_side(self) -> bool:
+        """Check if this MCP Server is configured for client-side execution"""
+        return self.get_execution_mode() == "client"
 
     @field_validator("server_url")
     @classmethod

@@ -112,14 +112,36 @@ class MCPManager:
                 # read from DB
                 mcp_server_id = await self.get_mcp_server_id_by_name(mcp_server_name, actor=actor)
                 mcp_config = await self.get_mcp_server_by_id_async(mcp_server_id, actor=actor)
+                
+                if mcp_config.is_client_side():
+                    logger.info(f"MCP server '{mcp_server_name} is configured for client-side execution. "
+                                f"Tool execution will be handled by letta-code CLI")
+                    # Return error to trigger approval flow
+                    error_msg = (
+                        f"MCP sever. '{mcp_server_name}' executes client-side. "
+                        f"Tool execution should be handled by letta-code CLI."
+                    )
+                    return error_msg, False
                 server_config = await mcp_config.to_config_async(environment_variables)
             else:
                 # read from config file
                 mcp_config = await self.read_mcp_config()
                 if mcp_server_name not in mcp_config:
                     raise ValueError(f"MCP server {mcp_server_name} not found in config.")
-                server_config = mcp_config[mcp_server_name]
 
+                if mcp_config.get("execution_mode") == "client":
+                    logger.info(
+                       f"MCP server '{mcp_server_name}' is configured for client-side execution. "
+                       f"Tool execution will be handled by letta-code CLI."  
+                    )
+                    # Return error to trigger approval flow
+                    error_msg = (
+                        f"MCP sever. '{mcp_server_name}' executes client-side. "
+                        f"Tool execution should be handled by letta-code CLI."
+                    )
+                    return error_msg, False
+                
+                server_config = mcp_config[mcp_server_name]
             mcp_client = await self.get_mcp_client(server_config, actor, agent_id=agent_id)
             await mcp_client.connect_to_server()
 
